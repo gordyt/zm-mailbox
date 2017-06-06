@@ -1508,7 +1508,7 @@ public abstract class Provisioning extends ZAttrProvisioning {
         }
         String[] upstreamIMAPServers = homeServer.getReverseProxyUpstreamImapServers();
         if(upstreamIMAPServers != null && upstreamIMAPServers.length > 0) {
-            return Arrays.asList(upstreamIMAPServers).contains(getInstance().getLocalServer().getServiceHostname());
+            return false;
         } else {
             return onLocalServer(account);
         }

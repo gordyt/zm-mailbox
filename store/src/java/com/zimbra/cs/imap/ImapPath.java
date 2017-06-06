@@ -284,7 +284,7 @@ public class ImapPath implements Comparable<ImapPath> {
             return mReferent.getOwnerImapMailboxStore(forceRemote);
         }
         Account target = getOwnerAccount();
-        if (forceRemote || (Provisioning.canUseLocalIMAP(target) && !Provisioning.onLocalServer(target))) {
+        if (forceRemote || !Provisioning.canUseLocalIMAP(target) || !Provisioning.onLocalServer(target)) {
             ZMailbox zmbox = getOwnerZMailbox();
             imapMboxStore = (null == zmbox) ? null : ImapMailboxStore.get(zmbox, this.getOwnerAccountId());
         }

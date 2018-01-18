@@ -1,4 +1,4 @@
-package com.zimbra.cs.mailbox;
+package com.zimbra.common.mailbox;
 
 
 

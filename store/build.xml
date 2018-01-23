@@ -279,6 +279,7 @@
     <ivy:install organisation="com.fasterxml.jackson.core" module="jackson-annotations" revision="2.7.0" settingsRef="dev.settings" from="chain-resolver" to="build-tmp" overwrite="true" transitive="true" type="jar"/>
     <ivy:install organisation="com.fasterxml.jackson.core" module="jackson-databind" revision="2.7.6" settingsRef="dev.settings" from="chain-resolver" to="build-tmp" overwrite="true" transitive="true" type="jar"/>
     <ivy:install organisation="com.fasterxml.jackson.dataformat" module="jackson-dataformat-yaml" revision="2.7.6" settingsRef="dev.settings" from="chain-resolver" to="build-tmp" overwrite="true" transitive="true" type="jar"/>
+    <ivy:install organisation="com.google.code.gson" module="gson" revision="2.8.2" settingsRef="dev.settings" from="chain-resolver" to="build-tmp" overwrite="true" transitive="true" type="jar"/>
 
     <!-- SOLR -->
     <ivy:install organisation="org.apache.lucene"         module="lucene-core"             revision="6.6.0" settingsRef="dev.settings" from="chain-resolver" to="build-tmp" overwrite="true" transitive="true" type="jar"/>

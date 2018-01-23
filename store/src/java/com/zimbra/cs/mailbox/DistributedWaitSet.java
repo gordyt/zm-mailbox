@@ -3,64 +3,48 @@ package com.zimbra.cs.mailbox;
 import java.util.List;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
+import org.redisson.api.listener.MessageListener;
 
-
+import com.google.gson.Gson;
+import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.mailbox.MailboxListener.ChangeNotification;
 import com.zimbra.cs.session.PendingModifications;
 import com.zimbra.cs.session.Session;
 
-public class DistributedWaitSet extends Session {
+public class DistributedWaitSet {
 
 	private static RedissonClient redisson = RedissonClientHolder.getInstance().getRedissonClient();
-
-	public DistributedWaitSet(String accountId, Type type) {
-		super(accountId, type);
-		// TODO Auto-generated constructor stub
+	private static Gson gson = new Gson();
+	private static ChangeNotification changeNotification;
+	
+	public static long publishChangeNotification(String topic, ChangeNotification notification) {
+		//needs to get scencial values to avoid circular references, is that is possible gson api not needed
+		RTopic<String> rTopic = redisson.getTopic(topic);
+		String json = "";
+		 json = gson.toJson(notification);
+		return rTopic.publish(json);
+	}
+	
+	public static ChangeNotification getChangeNotificationMessage(String topic) {
+		RTopic<String> rTopic = redisson.getTopic(topic);
+		rTopic.addListener(new MessageListener<String>() {
+			
+			@Override
+			public void onMessage(String arg0, String arg1) {
+				// TODO Auto-generated method stub
+				ZimbraLog.mailbox.info("DistributedWaitSet.getChangeNotificationMessage arg0::"+arg0 +" arg1::"+arg1);
+				changeNotification = gson.fromJson(arg1, ChangeNotification.class);
+				ZimbraLog.mailbox.info("changeNotification::"+changeNotification );
+			}
+		});
+		return changeNotification;
 	}
 
-	public DistributedWaitSet(String authId, String targetId, Type type) {
-		super(authId, targetId, type);
-	}
-
-	public <T> long publish(String topic, T message) {
-		return getTopic(topic, message).publish(message);
-	}
-
-	public <T> RTopic<T> getTopic(String topic, T typeReference) {
-		RTopic<T> rTopic = redisson.getTopic(topic);
-		return rTopic;
-	}
-
-	public <T> List<String> getChannelNames(String topic, T message) {
-		return getTopic(topic, message).getChannelNames();
-	}
-
-	@Override
-	protected boolean isMailboxListener() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	protected boolean isRegisteredInCache() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	protected long getSessionIdleLifetime() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public void notifyPendingChanges(PendingModifications pns, int changeId, Session source) {
-		// TODO Auto-generated method stub
-		this.publish("distributed", pns);
-	}
-
-	@Override
-	protected void cleanup() {
-		// TODO Auto-generated method stub
-
+	//to test
+	public static void main(String[] args) {
+		getChangeNotificationMessage("test");
+		
+		
+		publishChangeNotification("test", new ChangeNotification(null,null,null,0,null,0));
 	}
 }

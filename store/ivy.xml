@@ -113,5 +113,6 @@
   <dependency org="com.fasterxml.jackson.core" name="jackson-annotations" rev="2.7.0"/>
   <dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="2.7.6"/>
   <dependency org="com.fasterxml.jackson.dataformat" name="jackson-dataformat-yaml" rev="2.7.6"/>
+  <dependency org="com.google.code.gson" name="gson" rev="2.8.2"/>
  </dependencies>
 </ivy-module>

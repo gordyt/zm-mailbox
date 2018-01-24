@@ -89,7 +89,7 @@ public abstract class PendingModifications<T extends ZimbraMailItem> {
         public static final int MODSEQ           = 0x20000000;
         public static final int ALL_FIELDS       = ~0;
 
-        public Object what;
+        public transient Object what;
         public int    why;
         public Object preModifyObj;
         private int   folderId = -1;

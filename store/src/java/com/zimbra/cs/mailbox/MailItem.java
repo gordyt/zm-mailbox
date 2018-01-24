@@ -775,9 +775,9 @@ public abstract class MailItem implements Comparable<MailItem>, ScheduledTaskRes
 
     protected int            mId;
     protected UnderlyingData mData;
-    protected Mailbox        mMailbox;
+    protected transient Mailbox        mMailbox;
     protected Mailbox.MailboxData  mMailboxData;
-    protected Account        mAccount;
+    protected transient Account        mAccount;
     protected MailboxBlob    mBlob;
     protected int            mMetaVersion = 1;
     protected int            mVersion = 1;

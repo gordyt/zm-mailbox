@@ -9289,13 +9289,8 @@ public class Mailbox implements MailboxStore {
         }
 
         if (notification != null) {
-			ZimbraLog.mailbox.info(" *************************************** Starting to serialize...");
-			try {// seems like is failing for circular references
-				DistributedWaitSet.publishChangeNotification("test",
-						new ChangeNotification(getAccount(), null, null, 0, null, 0));
-			} catch (ServiceException e1) {
-				ZimbraLog.mailbox.info(" >>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR to serialize call...");
-			}
+			new DistributedWaitSet().publishDistributedNotification(change.getOperation().name(),
+					new DistributedNotification(notification.mods, notification.lastChangeId));
             for (Session session : mListeners) {
                 try {
                     session.notifyPendingChanges(notification.mods, notification.lastChangeId, source);

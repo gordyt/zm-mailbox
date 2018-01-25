@@ -148,7 +148,7 @@ public abstract class CalendarItem extends MailItem {
     private Recurrence.IRecurrence mRecurrence;
     private TimeZoneMap mTzMap;
 
-    private List<Invite> mInvites;
+    private transient List<Invite> mInvites;
 
     private ReplyList mReplyList;
     protected ReplyList getReplyList() { return mReplyList; }

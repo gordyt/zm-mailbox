@@ -187,7 +187,7 @@ public class Folder extends MailItem implements FolderStore {
 
     protected byte    attributes;
     protected Type    defaultView;
-    private Map<String, Folder> subfolders;
+    private transient Map<String, Folder> subfolders;
     private long      totalSize;
     private Folder    parent;
     private SyncData  syncData;

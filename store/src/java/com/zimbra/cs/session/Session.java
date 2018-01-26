@@ -295,6 +295,11 @@ public abstract class Session {
      *                  <tt>null</tt> if none was specified. */
     public abstract void notifyPendingChanges(PendingModifications pns, int changeId, Session source);
 
+    public com.zimbra.cs.iochannel.Message getNotifyPendingChanges(PendingModifications pns, int changeId, Session source){
+        return null;
+    }
+
+
     /** Notify this session that an external event has occured. */
     public void notifyExternalEvent(ExternalEventNotification extra) {
         // do nothing by default.

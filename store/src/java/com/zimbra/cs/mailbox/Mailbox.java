@@ -58,6 +58,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.gson.Gson;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.zimbra.client.ZFolder;
 import com.zimbra.client.ZMailbox;
@@ -8170,7 +8171,7 @@ public class Mailbox implements MailboxStore {
     throws ServiceException {
         // Lock this mailbox to make sure that no one modifies the items we're about to delete.
         try (final MailboxLock l = lockFactory.writeLock()) {
-          
+
             DeleteItem redoRecorder = new DeleteItem(mId, MailItem.Type.UNKNOWN, tcon);
             try (final MailboxTransaction t = new MailboxTransaction("delete", octxt, l, redoRecorder)) {
                 setOperationTargetConstraint(tcon);
@@ -9289,10 +9290,9 @@ public class Mailbox implements MailboxStore {
         }
 
         if (notification != null) {
-			new DistributedWaitSet().publishDistributedNotification(change.getOperation().name(),
-					new DistributedNotification(notification.mods, notification.lastChangeId));
             for (Session session : mListeners) {
                 try {
+                    ZimbraLog.mailbox.info(session.getNotifyPendingChanges(notification.mods, notification.lastChangeId, source).toString());
                     session.notifyPendingChanges(notification.mods, notification.lastChangeId, source);
                 } catch (RuntimeException e) {
                     ZimbraLog.mailbox.error("ignoring error during notification", e);

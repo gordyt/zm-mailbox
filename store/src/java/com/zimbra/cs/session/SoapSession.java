@@ -53,6 +53,8 @@ import com.zimbra.cs.account.Provisioning;
 import com.zimbra.cs.account.Server;
 import com.zimbra.cs.httpclient.URLUtil;
 import com.zimbra.cs.index.ZimbraQueryResults;
+import com.zimbra.cs.iochannel.CrossServerNotification;
+import com.zimbra.cs.iochannel.MessageChannelException;
 import com.zimbra.cs.mailbox.Comment;
 import com.zimbra.cs.mailbox.Conversation;
 import com.zimbra.cs.mailbox.Flag;
@@ -135,7 +137,8 @@ public class SoapSession extends Session {
         @Override public void cleanup()  { }
 
         @SuppressWarnings("rawtypes")
-        @Override public void notifyPendingChanges(PendingModifications pmsIn, int changeId, Session source) {
+        @Override
+        public void notifyPendingChanges(PendingModifications pmsIn, int changeId, Session source) {
             PendingLocalModifications pms = (PendingLocalModifications) pmsIn;
             try {
                 if (calculateVisibleFolders(false))
@@ -484,6 +487,7 @@ public class SoapSession extends Session {
     private boolean isOffline = false;
     private final SoapProtocol responseProtocol;
     private String curWaitSetID;
+    private final ZimbraSoapContext zsc;
 
     /** Creates a <tt>SoapSession</tt> owned by the given account and
      *  listening on its {@link Mailbox}.
@@ -493,6 +497,7 @@ public class SoapSession extends Session {
         this.asAdmin = zsc.isUsingAdminPrivileges();
         responseProtocol = zsc.getResponseProtocol();
         curWaitSetID = zsc.getCurWaitSetID();
+        this.zsc = zsc;
     }
 
     @Override
@@ -902,6 +907,64 @@ public class SoapSession extends Session {
         }
 
         handleNotifications(pms, source == this);
+    }
+
+    @Override
+    public com.zimbra.cs.iochannel.Message getNotifyPendingChanges(PendingModifications pmsIn, int changeId, Session source) {
+        PendingLocalModifications pms = (PendingLocalModifications) pmsIn;
+        Mailbox mbox = this.getMailboxOrNull();
+        if (pms == null || mbox == null || !pms.hasNotifications()) {
+            return null;
+        }
+        if (source == this) {
+            updateLastWrite(mbox);
+        } else {
+            // keep track of "recent" message count: all present before the session started, plus all received during the session
+            if (pms.created != null) {
+                for (BaseItemInfo item : pms.created.values()) {
+                    if (item instanceof Message) {
+                        Message msg = (Message) item;
+                        boolean isReceived = true;
+                        if (msg.getFolderId() == Mailbox.ID_FOLDER_SPAM || msg.getFolderId() == Mailbox.ID_FOLDER_TRASH) {
+                            isReceived = false;
+                        } else if ((item.getFlagBitmask() & Mailbox.NON_DELIVERY_FLAGS) != 0) {
+                            isReceived = false;
+                        } else if (source != null) {
+                            isReceived = false;
+                        }
+                        if (isReceived) {
+                            recentMessages++;
+                            ZimbraLog.session.debug("incrementing session recent count to %d", recentMessages);
+                        }
+                    }
+                }
+            }
+        }
+
+        return createNotifyPendingChangesMessage(pms, source == this);
+    }
+
+    public com.zimbra.cs.iochannel.Message createNotifyPendingChangesMessage(PendingLocalModifications pms, boolean fromThisSession) {
+        CrossServerNotification ntfn = null;
+
+        if (!hasSerializableChanges(pms)) {
+            return ntfn;
+        }
+
+        try {
+            // update the set of notifications not yet sent to the client
+            cacheNotifications(pms, fromThisSession);
+            // if we're in a hanging no-op, alert the client that there are changes
+            ntfn = CrossServerNotification.create(this, zsc);
+            // FIXME: this query result cache purge seems a little aggressive
+            clearCachedQueryResults();
+        } catch (ServiceException e) {
+            ZimbraLog.session.warn("ServiceException in notifyPendingChanges ", e);
+        } catch (MessageChannelException e) {
+            ZimbraLog.session.warn("ServiceException in notifyPendingChanges ", e);
+        }
+
+        return ntfn;
     }
 
     boolean hasSerializableChanges(PendingLocalModifications pms) {

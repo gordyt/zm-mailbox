@@ -10739,4 +10739,47 @@ public class LdapProvisioning extends LdapProv implements CacheAwareProvisioning
             LdapClient.closeContext(zlc);
         }
     }
+    public IAccountCache getAccountCache() {
+        return accountCache;
+    }
+
+    public INamedEntryCache<LdapCos> getCosCache() {
+        return cosCache;
+    }
+
+    public IDomainCache getDomainCache() {
+        return domainCache;
+    }
+
+    public INamedEntryCache<Group> getGroupCache() {
+        return groupCache;
+    }
+
+    public IMimeTypeCache getMimeTypeCache() {
+        return mimeTypeCache;
+    }
+
+    public INamedEntryCache<Server> getServerCache() {
+        return serverCache;
+    }
+
+    public INamedEntryCache<AlwaysOnCluster> getAlwaysOnClusterCache() {
+        return alwaysOnClusterCache;
+    }
+
+    public INamedEntryCache<UCService> getUcServiceCache() {
+        return ucServiceCache;
+    }
+
+    public INamedEntryCache<ShareLocator> getShareLocatorCache() {
+        return shareLocatorCache;
+    }
+
+    public INamedEntryCache<XMPPComponent> getXmppComponentCache() {
+        return xmppComponentCache;
+    }
+
+    public INamedEntryCache<LdapZimlet> getZimletCache() {
+        return zimletCache;
+    }
 }

@@ -28,6 +28,7 @@ import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
+import com.zimbra.cs.account.ldap.LdapProvisioning;
 import org.eclipse.jetty.continuation.ContinuationSupport;
 
 import com.google.common.base.Strings;
@@ -271,7 +272,11 @@ public class SoapEngine {
             SoapProtocol soapProto = chooseFaultProtocolFromBadXml(new ByteArrayInputStream(soapMessage));
             return soapFaultEnv(soapProto, "SOAP exception", e);
         }
+        ZimbraLog.redolog.info("\n\n\n");
+        ZimbraLog.redolog.info("SOAP-HARNESS-START " + document.toString());
         Element resp = dispatch(path, document, context);
+        ZimbraLog.redolog.info("SOAP-HARNESS-END");
+        ZimbraLog.redolog.info("\n\n");
 
         /*
          * For requests(e.g. AuthRequest) that don't have account info in time when they
@@ -613,7 +618,45 @@ public class SoapEngine {
                 if (delegatedAuth) {
                     handler.logAuditAccess(at.getAdminAccountId(), acctId, acctId);
                 }
+                LdapProvisioning ldapProv = ((LdapProvisioning)Provisioning.getInstance());
+
+                ZimbraLog.redolog.info("\n\nBEFORE");
+                ZimbraLog.redolog.info("------------------------------------------------------------------------------------------------------------------");
+                ZimbraLog.redolog.info("Account Size: " + ldapProv.getAccountCache().getSize());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<<    Account CACHE     >>>>>>>>>>>>>>>>>>>> " + ldapProv.getAccountCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<<      COS CACHE       >>>>>>>>>>>>>>>>>>>> " + ldapProv.getCosCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<<    DOMAIN CACHE      >>>>>>>>>>>>>>>>>>>> " + ldapProv.getDomainCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<<    GROUP  CACHE      >>>>>>>>>>>>>>>>>>>> " + ldapProv.getGroupCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<<    MIME TYPE CACHE   >>>>>>>>>>>>>>>>>>>> " + ldapProv.getMimeTypeCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<<    SERVER CACHE      >>>>>>>>>>>>>>>>>>>> " + ldapProv.getServerCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<< ALLWAYS ON CLUSTER   >>>>>>>>>>>>>>>>>>>> " + ldapProv.getAlwaysOnClusterCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<<   UC SERVICE CACHE   >>>>>>>>>>>>>>>>>>>> " + ldapProv.getUcServiceCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<< SAHRED LOCATOR CAHE  >>>>>>>>>>>>>>>>>>>> " + ldapProv.getShareLocatorCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<< XMPP COMPONENT CACHE >>>>>>>>>>>>>>>>>>>> " + ldapProv.getXmppComponentCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<<    ZIMLET CACHE      >>>>>>>>>>>>>>>>>>>> " + ldapProv.getZimletCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<<    Account logger    >>>>>>>>>>>>>>>>>>>> " + com.zimbra.common.util.LogFactory.getAllAccountLoggers());
+                ZimbraLog.redolog.info("------------------------------------------------------------------------------------------------------------------");
+
                 response = handler.handle(soapReqElem, context);
+
+                ZimbraLog.redolog.info("\n\nAFTER");
+                ZimbraLog.redolog.info("------------------------------------------------------------------------------------------------------------------");
+                ZimbraLog.redolog.info("Account Size: " + ldapProv.getAccountCache().getSize());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<<    Account CACHE     >>>>>>>>>>>>>>>>>>>> " + ldapProv.getAccountCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<<    COS CACHE         >>>>>>>>>>>>>>>>>>>> " + ldapProv.getCosCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<<    DOMAIN CACHE      >>>>>>>>>>>>>>>>>>>> " + ldapProv.getDomainCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<<    GROUP  CACHE      >>>>>>>>>>>>>>>>>>>> " + ldapProv.getGroupCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<<    MIME TYPE CACHE   >>>>>>>>>>>>>>>>>>>> " + ldapProv.getMimeTypeCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<<    SERVER CACHE      >>>>>>>>>>>>>>>>>>>> " + ldapProv.getServerCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<< ALLWAYS ON CLUSTER   >>>>>>>>>>>>>>>>>>>> " + ldapProv.getAlwaysOnClusterCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<<   UC SERVICE CACHE   >>>>>>>>>>>>>>>>>>>> " + ldapProv.getUcServiceCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<< SAHRED LOCATOR CAHE  >>>>>>>>>>>>>>>>>>>> " + ldapProv.getShareLocatorCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<< XMPP COMPONENT CACHE >>>>>>>>>>>>>>>>>>>> " + ldapProv.getXmppComponentCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<<    ZIMLET CACHE      >>>>>>>>>>>>>>>>>>>> " + ldapProv.getZimletCache());
+                ZimbraLog.redolog.info("<<<<<<<<<<<<<<<<<<<    Account logger    >>>>>>>>>>>>>>>>>>>> " + com.zimbra.common.util.LogFactory.getAllAccountLoggers());
+                ZimbraLog.redolog.info("------------------------------------------------------------------------------------------------------------------");
+
+
                 ZimbraPerf.SOAP_TRACKER.addStat(getStatName(soapReqElem), startTime);
                 long duration = System.currentTimeMillis() - startTime;
                 if (LC.zimbra_slow_logging_enabled.booleanValue() && duration > LC.zimbra_slow_logging_threshold.longValue() &&

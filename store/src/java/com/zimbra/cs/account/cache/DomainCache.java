@@ -401,4 +401,31 @@ public class DomainCache implements IDomainCache {
     public synchronized double getHitRate() {
     	 return mHitRate.getAverage();
     }
+
+    @Override
+    public String toString() {
+        StringBuffer sb = new StringBuffer("\n");
+        sb.append("   ---   IdChache   ---  ");
+        mIdCache.forEach((key, value) -> {
+            sb.append(key + " : " + value + "\n");
+        });
+
+        sb.append("   ---   VirtualHostnameCache   ---  ");
+        mVirtualHostnameCache.forEach((key, value) -> {
+            sb.append(key + " : " + value + "\n");
+        });
+
+        sb.append("   ---   ForeignNameCache   ---  ");
+        mForeignNameCache.forEach((key, value) -> {
+            sb.append(key + " : " + value + "\n");
+        });
+
+        sb.append("   ---   Krb5RealmCache   ---  ");
+        mKrb5RealmCache.forEach((key, value) -> {
+            sb.append(key + " : " + value + "\n");
+        });
+        sb.append("\n");
+
+        return sb.toString();
+    }
 }

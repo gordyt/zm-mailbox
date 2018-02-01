@@ -23,12 +23,16 @@
  */
 package com.zimbra.cs.account.cache;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 
 import com.zimbra.common.util.MapUtil;
 import com.zimbra.common.stats.Counter;
 import com.zimbra.common.stats.HitRateCounter;
+import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.account.Entry;
 import com.zimbra.cs.account.NamedEntry;
 
 /**
@@ -150,5 +154,32 @@ public class NamedEntryCache<E extends NamedEntry> implements INamedEntryCache<E
     @Override
     public synchronized double getHitRate() {
         return mHitRate.getAverage();
+    }
+
+    @Override
+    public String toString() {
+        StringBuffer sb = new StringBuffer("\n");
+        mIdCache.forEach((id, cacheEntry) -> {
+            if (((CacheEntry)cacheEntry).mEntry instanceof Entry) {
+                ((Entry) ((CacheEntry)cacheEntry).mEntry).getAttrs().forEach((attrKey, attrValue) -> {
+                    sb.append(attrKey + " : " + attrValue + "\n");
+                });
+            } else {
+                Method[] methods = ((CacheEntry)cacheEntry).mEntry.getClass().getMethods();
+                for (Method method : methods) {
+                    if (method.getName().contains("get") && method.getParameterCount() <= 0) {
+                        try {
+                            sb.append(id + " : " + method.getName() + " : " + method.invoke(cacheEntry) + "\n");
+                        } catch (IllegalAccessException e) {
+                            ZimbraLog.soap.error(e);
+                        } catch (InvocationTargetException e) {
+                            ZimbraLog.soap.error(e);
+                        }
+                    }
+                }
+            }
+        });
+        sb.append("\n");
+        return sb.toString();
     }
 }

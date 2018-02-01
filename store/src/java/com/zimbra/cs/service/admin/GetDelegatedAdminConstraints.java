@@ -25,6 +25,7 @@ import com.zimbra.common.account.Key.CosBy;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.soap.AdminConstants;
 import com.zimbra.common.soap.Element;
+import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.AccountServiceException;
 import com.zimbra.cs.account.Cos;
 import com.zimbra.cs.account.Entry;
@@ -75,7 +76,8 @@ public class GetDelegatedAdminConstraints extends AdminDocumentHandler {
                 ac.toXML(eAttr);
             }
         }
-        
+        ZimbraLog.redolog.info("-------------- Get AdminContrains ---------------");
+        ZimbraLog.redolog.info(constraints.toString());
         return response;
     }
     

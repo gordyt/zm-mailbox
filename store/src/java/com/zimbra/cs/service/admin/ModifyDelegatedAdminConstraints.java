@@ -35,6 +35,7 @@ import com.zimbra.cs.account.Provisioning;
 import com.zimbra.cs.account.accesscontrol.AdminRight;
 import com.zimbra.cs.account.accesscontrol.AttributeConstraint;
 import com.zimbra.cs.account.accesscontrol.TargetType;
+import com.zimbra.cs.util.Zimbra;
 import com.zimbra.soap.ZimbraSoapContext;
 
 public class ModifyDelegatedAdminConstraints extends AdminDocumentHandler {
@@ -71,6 +72,9 @@ public class ModifyDelegatedAdminConstraints extends AdminDocumentHandler {
                 new String[] {"cmd", "ModifyDelegatedAdminConstraints","name", entry.getLabel()}, attrs));
         
         Element response = zsc.createElement(AdminConstants.MODIFY_DELEGATED_ADMIN_CONSTRAINTS_RESPONSE);
+        ZimbraLog.redolog.info("-------------- Modify AdminContrains ---------------");
+        ZimbraLog.redolog.info(constraints.toString());
+
         return response;
     }
     

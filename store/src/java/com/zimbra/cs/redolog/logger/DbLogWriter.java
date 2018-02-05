@@ -41,7 +41,7 @@ public class DbLogWriter implements LogWriter {
     }
 
     @Override
-    public void open() throws LogFailedException {
+    public synchronized void open() throws LogFailedException {
         try {
             if (conn != null && !conn.getConnection().isClosed()) {
                 return; // already open
@@ -59,7 +59,7 @@ public class DbLogWriter implements LogWriter {
     }
 
     @Override
-    public void close() throws LogFailedException {
+    public synchronized void close() throws LogFailedException {
         if (conn != null) {
             try {
                 mHeader.setOpen(false);
@@ -74,8 +74,9 @@ public class DbLogWriter implements LogWriter {
 
     @Override
     public synchronized void log(RedoableOp op, InputStream data, boolean synchronous) throws LogFailedException {
-        if (conn == null) {
-            throw new LogFailedException("Redolog connection closed");
+        if (!isOpen()) {
+            open();
+            //throw new LogFailedException("Redolog connection closed");
         }
 
         try {
@@ -150,7 +151,7 @@ public class DbLogWriter implements LogWriter {
     }
 
     @Override
-    public boolean delete() {
+    public synchronized boolean delete() {
         if (conn == null) {
             throw new RuntimeException("Redolog connection closed");
         }
@@ -178,7 +179,7 @@ public class DbLogWriter implements LogWriter {
         return 0;
     }
 
-    public boolean isOpen() throws LogFailedException {
+    public synchronized boolean isOpen() throws LogFailedException {
         try {
             return (conn != null && !conn.getConnection().isClosed());
         } catch (SQLException e) {

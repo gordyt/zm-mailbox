@@ -121,7 +121,8 @@ public class DistributedMailboxLockFactory implements MailboxLockFactory {
 
         @Override
         public void close() {
-            if (this.lock.isHeldByCurrentThread()){
+            //java.lang.IllegalMonitorStateException: attempt to unlock lock, not locked by current thread by node id: 1bf6c27e-4c49-4450-849d-cec2eda57f74 thread-id: 236
+            if (this.lock.isHeldByCurrentThread() && this.lock.isLocked() ){
                 this.lock.unlock();
                 if (counterCalls > 1) {
                     counterCalls--;

@@ -18,6 +18,8 @@ import java.util.concurrent.TimeUnit;
 
 public class DistributedMailboxLockFactory implements MailboxLockFactory {
     private final Mailbox mailbox;
+    private static DistributedMailboxLockFactory instance;
+
     private final RedissonClient redisson;
     private RReadWriteLock readWriteLock;
     private List<RLock> waiters;
@@ -32,6 +34,13 @@ public class DistributedMailboxLockFactory implements MailboxLockFactory {
         } catch (Exception e) {
             ZimbraLog.system.fatal("Can't instantiate Redisson server", e);
         }
+    }
+
+    public static synchronized DistributedMailboxLockFactory getInstance(final Mailbox mailbox){
+        if(instance==null){
+            instance = new DistributedMailboxLockFactory(mailbox);
+        }
+        return instance;
     }
 
     @Override

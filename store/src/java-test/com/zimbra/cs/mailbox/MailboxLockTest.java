@@ -725,4 +725,18 @@ public class MailboxLockTest {
             t.join();
         }
     }
+
+
+    @Test
+    public void twoWritersGotADeadLock() throws Exception {
+        Mailbox mbox = MailboxManager.getInstance().getMailboxByAccountId(MockProvisioning.DEFAULT_ACCOUNT_ID);
+        try (final MailboxLock l1 = mbox.lock(true);) {
+            l1.lock();
+            mbox = MailboxManager.getInstance().getMailboxByAccountId(MockProvisioning.DEFAULT_ACCOUNT_ID);
+            try (final MailboxLock l2 = mbox.lock(true)) {
+                l2.lock();
+            }
+            Assert.assertEquals(1, l1.getHoldCount());
+        }
+    }
 }

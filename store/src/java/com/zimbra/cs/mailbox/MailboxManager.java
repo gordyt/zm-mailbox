@@ -471,7 +471,7 @@ public class MailboxManager {
         if (mbox.open()) {
             // if TRUE, then the mailbox is actually opened, so we need to notify listeners of the mailbox being loaded
             notifyMailboxLoaded(mbox);
-            cacheManager.cacheMailbox(mbox.getId(),mbox.isOpen());
+            cacheManager.cacheMailbox(mbox.getId(),mbox.isOpen(),mbox.isWriteLockRequired());
         }
 
         ZimbraPerf.STOPWATCH_MBOX_GET.stop(startTime);
@@ -796,7 +796,7 @@ public class MailboxManager {
         // IO and other longer operations don't block the system.
         if (mbox.open()){
             notifyMailboxCreated(mbox);
-            cacheManager.cacheMailbox(mbox.getId(),mbox.isOpen());
+            cacheManager.cacheMailbox(mbox.getId(),mbox.isOpen(), mbox.isWriteLockRequired());
         }
 
         return mbox;

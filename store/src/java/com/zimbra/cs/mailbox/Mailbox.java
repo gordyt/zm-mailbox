@@ -789,9 +789,10 @@ public class Mailbox implements MailboxStore {
         callbacks.put(MessageCallback.Type.received, new ReceivedMessageCallback());
     }
 
-    public Mailbox(MailboxData data, boolean isMailboxOpen) {
+    public Mailbox(MailboxData data, boolean isMailboxOpen, boolean requiresWriteLock) {
         this(data);
         this.open = isMailboxOpen;
+        this.requiresWriteLock = requiresWriteLock;
     }
 
     public void setGalSyncMailbox(boolean galSyncMailbox) {
@@ -803,7 +804,11 @@ public class Mailbox implements MailboxStore {
     }
 
     boolean isOpen() {
-        return open;
+        return this.open;
+    }
+
+    boolean isWriteLockRequired(){
+        return this.requiresWriteLock;
     }
 
     private MailboxChange currentChange() {
@@ -2019,6 +2024,12 @@ public class Mailbox implements MailboxStore {
     private void clearFolderCache() {
         mFolderCache = null;
         requiresWriteLock = true;
+        try {
+            MailboxCacheManager cacheManager = MailboxManager.getInstance().cacheManager;
+            cacheManager.cacheMailbox(this.getId(), this.isOpen(), this.isWriteLockRequired());
+        } catch (ServiceException e) {
+            ZimbraLog.mailbox.warn("error gettting MailboxManager instance.");
+        }
         // Remove from memcached cache
         try {
             FoldersTagsCache.getInstance().purgeMailbox(this);
@@ -2030,6 +2041,12 @@ public class Mailbox implements MailboxStore {
     private void clearTagCache() {
         mTagCache = null;
         requiresWriteLock = true;
+        try {
+            MailboxCacheManager cacheManager = MailboxManager.getInstance().cacheManager;
+            cacheManager.cacheMailbox(this.getId(), this.isOpen(), this.isWriteLockRequired());
+        } catch (ServiceException e) {
+            ZimbraLog.mailbox.warn("error gettting MailboxManager instance.");
+        }
         // Remove from memcached cache
         try {
             FoldersTagsCache.getInstance().purgeMailbox(this);
@@ -2273,6 +2290,12 @@ public class Mailbox implements MailboxStore {
             }
             if (requiresWriteLock) {
                 requiresWriteLock = false;
+                try {
+                    MailboxCacheManager cacheManager = MailboxManager.getInstance().cacheManager;
+                    cacheManager.cacheMailbox(this.getId(), this.isOpen(), this.isWriteLockRequired());
+                } catch (ServiceException e) {
+                    ZimbraLog.mailbox.warn("error gettting MailboxManager instance.");
+                }
                 ZimbraLog.mailbox.debug("consuming forceWriteMode");
                 //we've reloaded folder/tags so new callers can go back to using read
             }
@@ -2284,8 +2307,8 @@ public class Mailbox implements MailboxStore {
     }
 
     void cacheFoldersTagsToMemcached() throws ServiceException {
-        try (final MailboxLock l = lockFactory.writeLock()) {
-            l.lock();
+        //try (final MailboxLock l = lockFactory.writeLock()) {
+          //  l.lock();
             List<Folder> folderList = new ArrayList<Folder>(mFolderCache.values());
             List<Tag> tagList = new ArrayList<Tag>();
             for (Map.Entry<Object, Tag> entry : mTagCache.entrySet()) {
@@ -2297,7 +2320,7 @@ public class Mailbox implements MailboxStore {
             FoldersTags ftData = new FoldersTags(folderList, tagList);
             FoldersTagsCache ftCache = FoldersTagsCache.getInstance();
             ftCache.put(this, ftData);
-        }
+        //}
     }
 
     public void recalculateFolderAndTagCounts() throws ServiceException {
@@ -4082,7 +4105,7 @@ public class Mailbox implements MailboxStore {
 
     public FolderNode getFolderTree(OperationContext octxt, ItemId iid, boolean returnAllVisibleFolders)
                     throws ServiceException {
-        try (final MailboxLock l = lockFactory.readLock()) {
+        //try (final MailboxLock l = lockFactory.readLock()) {
             //l.lock();
             // get the root node...
             int folderId = iid != null ? iid.getId() : Mailbox.ID_FOLDER_USER_ROOT;
@@ -4090,7 +4113,7 @@ public class Mailbox implements MailboxStore {
             // for each subNode...
             Set<Folder> visibleFolders = getVisibleFolders(octxt);
             return handleFolder(folder, visibleFolders, returnAllVisibleFolders);
-        }
+        //}
     }
 
     public FolderNode getFolderTreeByUuid(OperationContext octxt, String uuid, boolean returnAllVisibleFolders)

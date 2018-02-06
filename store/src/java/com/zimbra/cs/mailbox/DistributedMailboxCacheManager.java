@@ -33,6 +33,7 @@ public class DistributedMailboxCacheManager implements MailboxCacheManager {
     private final MailboxMap cache;
 
     private RMap<Integer, Boolean> openMailboxMap;
+    private RMap<Integer, Boolean> requiresWriteLockMap;
 
     private final RedissonClientHolder redissonClientHolder;
 
@@ -130,6 +131,7 @@ public class DistributedMailboxCacheManager implements MailboxCacheManager {
     public void cacheMailbox(int mailboxId, MailboxMaintenance maint) {
         //noop
         openMailboxMap.put(mailboxId,maint.getMailbox().isOpen());
+        requiresWriteLockMap.put(mailboxId, maint.getMailbox().isWriteLockRequired());
     }
 
     @Override
@@ -153,23 +155,27 @@ public class DistributedMailboxCacheManager implements MailboxCacheManager {
         }
 
         boolean isMailboxOpen = openMailboxMap.containsKey(data.id)?openMailboxMap.get(data.id):false;
-        return new Mailbox(data,isMailboxOpen);
+        boolean isWriteLockrequired = requiresWriteLockMap.containsKey(data.id)?requiresWriteLockMap.get(data.id):true;
+        return new Mailbox(data,isMailboxOpen, isWriteLockrequired);
     }
 
     @Override
     public Mailbox cacheMailbox(Mailbox mailbox) {
         openMailboxMap.put(mailbox.getId(),mailbox.isOpen());
+        requiresWriteLockMap.put(mailbox.getId(),mailbox.isWriteLockRequired());
         return mailbox;
     }
 
     @Override
-    public void cacheMailbox(int mailboxId, boolean isOpen) {
+    public void cacheMailbox(int mailboxId, boolean isOpen, boolean isWriteLockRequired) {
         openMailboxMap.put(mailboxId,isOpen);
+        requiresWriteLockMap.put(mailboxId,isWriteLockRequired);
     }
 
     @Override
     public void removeMailbox(int mailboxId) {
         openMailboxMap.remove(mailboxId);
+        requiresWriteLockMap.remove(mailboxId);
         //noop
     }
 
@@ -222,11 +228,13 @@ public class DistributedMailboxCacheManager implements MailboxCacheManager {
     public void clearCache() {
         //noop
         openMailboxMap.clear();
+        requiresWriteLockMap.clear();
     }
 
 
     public MailboxMap createCache() {
         openMailboxMap = redissonClientHolder.getRedissonClient().getMap("openMailboxMap");
+        requiresWriteLockMap = redissonClientHolder.getRedissonClient().getMap("requiresWriteLockMap");
         return new MailboxMap(LC.zimbra_mailbox_manager_hardref_cache.intValue());
     }
 

@@ -30,7 +30,7 @@ public interface MailboxCacheManager {
      */
     Object getMailbox(int mailboxId);
 
-    void cacheMailbox(int mailboxId, boolean isOpen);
+    void cacheMailbox(int mailboxId, boolean isOpen, boolean isWriteLockRequired);
 
     void removeMailbox(int mailboxId);
 

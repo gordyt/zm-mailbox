@@ -25,6 +25,7 @@ public class DbLogWriter implements LogWriter {
     private long mFirstOpTstamp;
     private long mLastOpTstamp;
     private final String FAILED_METHOD_TEMPLATE = "Failed in %s Method";
+    private boolean isOpen = false;
 
     static {
         try {
@@ -40,8 +41,7 @@ public class DbLogWriter implements LogWriter {
         mHeader = new LogHeader(sServerId);
     }
 
-    @Override
-    public synchronized void open() throws LogFailedException {
+    private void openDbConnection() throws LogFailedException {
         try {
             if (conn != null && !conn.getConnection().isClosed()) {
                 return; // already open
@@ -49,37 +49,63 @@ public class DbLogWriter implements LogWriter {
 
             conn = DbPool.getConnection();
             ZimbraLog.redolog.info("fetching new DB connection");
-
-            mHeader.init(conn);
-            mFirstOpTstamp = mHeader.getFirstOpTstamp();
-            mLastOpTstamp = mHeader.getLastOpTstamp();
         } catch (Exception e) {
             new LogFailedException(String.format(FAILED_METHOD_TEMPLATE, "open"), e);
         }
     }
 
+    private void closeDbConnection() throws SQLException {
+        if (conn != null && !conn.getConnection().isClosed()) {
+            DbPool.quietClose(conn);
+        }
+    }
+
+    @Override
+    public synchronized void open() throws LogFailedException {
+        try {
+            openDbConnection();
+            mHeader.init(conn);
+            mFirstOpTstamp = mHeader.getFirstOpTstamp();
+            mLastOpTstamp = mHeader.getLastOpTstamp();
+            isOpen = true;
+        } catch (Exception e) {
+            new LogFailedException(String.format(FAILED_METHOD_TEMPLATE, "open"), e);
+        } finally {
+            try {
+                closeDbConnection();
+            } catch (SQLException e) {
+                ZimbraLog.redolog.error("Failed to close DB connection", e);
+            }
+        }
+    }
+
     @Override
     public synchronized void close() throws LogFailedException {
-        if (conn != null) {
+        try {
+            openDbConnection();
+            mHeader.setOpen(false);
+            mHeader.write(conn);
+            isOpen = false;
+        } catch (Exception e) {
+            ZimbraLog.redolog.error("Failed to write header at close redolog", e);
+        } finally {
             try {
-                mHeader.setOpen(false);
-                mHeader.write(conn);
-            } catch (Exception e) {
-                ZimbraLog.redolog.error("Failed to write header at close redolog", e);
+                closeDbConnection();
+            } catch (SQLException e) {
+                ZimbraLog.redolog.error("Failed to close DB connection", e);
             }
-
-            DbPool.quietClose(conn);
         }
     }
 
     @Override
     public synchronized void log(RedoableOp op, InputStream data, boolean synchronous) throws LogFailedException {
         if (!isOpen()) {
-            open();
-            //throw new LogFailedException("Redolog connection closed");
+            throw new LogFailedException("Redolog connection closed");
         }
 
         try {
+            openDbConnection();
+
             // Record first transaction in header.
             long tstamp = op.getTimestamp();
             mLastOpTstamp = Math.max(tstamp, mLastOpTstamp);
@@ -96,8 +122,11 @@ public class DbLogWriter implements LogWriter {
         } finally {
             try {
                 data.close();
+                closeDbConnection();
             } catch (IOException e) {
                 ZimbraLog.redolog.error("Failed to close Op's data Stream", e);
+            } catch (SQLException e) {
+                ZimbraLog.redolog.error("Failed to close DB connection", e);
             }
         }
     }
@@ -109,15 +138,25 @@ public class DbLogWriter implements LogWriter {
 
     @Override
     public synchronized long getSize() {
-        if (conn == null) {
+        if (!isOpen()) {
             throw new RuntimeException("Redolog connection closed");
         }
 
         try {
+            openDbConnection();
             return DbDistibutedRedolog.getAllOpSize(conn);
         } catch (ServiceException e) {
             throw new RuntimeException(String.format(FAILED_METHOD_TEMPLATE, "getSize"), e);
+        } catch (LogFailedException e) {
+            throw new RuntimeException(String.format(FAILED_METHOD_TEMPLATE, "getSize"), e);
+        } finally {
+            try {
+                closeDbConnection();
+            } catch (SQLException e) {
+                ZimbraLog.redolog.error("Failed to close DB connection", e);
+            }
         }
+
     }
 
     @Override
@@ -152,15 +191,24 @@ public class DbLogWriter implements LogWriter {
 
     @Override
     public synchronized boolean delete() {
-        if (conn == null) {
+        if (!isOpen()) {
             throw new RuntimeException("Redolog connection closed");
         }
 
         try {
+            openDbConnection();
             DbDistibutedRedolog.clearRedolog(conn);
             return true;
         } catch (ServiceException e) {
             throw new RuntimeException(String.format(FAILED_METHOD_TEMPLATE, "delete"), e);
+        } catch (LogFailedException e) {
+            throw new RuntimeException(String.format(FAILED_METHOD_TEMPLATE, "delete"), e);
+        } finally {
+            try {
+                closeDbConnection();
+            } catch (SQLException e) {
+                ZimbraLog.redolog.error("Failed to close DB connection", e);
+            }
         }
     }
 
@@ -179,12 +227,8 @@ public class DbLogWriter implements LogWriter {
         return 0;
     }
 
-    public synchronized boolean isOpen() throws LogFailedException {
-        try {
-            return (conn != null && !conn.getConnection().isClosed());
-        } catch (SQLException e) {
-            throw new LogFailedException(String.format(FAILED_METHOD_TEMPLATE, "isOpen"), e);
-        }
+    public synchronized boolean isOpen() {
+        return isOpen;
     }
 
     public class LogFailedException extends IOException {

@@ -828,13 +828,12 @@ public class Mailbox implements MailboxStore {
      * @return TRUE if we did some work (this was the mailbox's first open) or FALSE if mailbox was already opened
      * @throws ServiceException
      */
-    boolean open() throws ServiceException {
+    synchronized boolean open() throws ServiceException {
         if (open) { // already opened
             return false;
         }
 
-        try (final MailboxLock l = lockFactory.writeLock()) {
-            l.lock();
+
 
             if (open) { // double checked locking
                 return false;
@@ -960,7 +959,7 @@ public class Mailbox implements MailboxStore {
 
             // done!
             return open = true;
-        }
+
     }
 
     /** Returns the server-local numeric ID for this mailbox.  To get a

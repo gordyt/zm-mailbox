@@ -23,13 +23,14 @@ import javax.xml.bind.annotation.XmlEnum;
 
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.soap.MailConstants;
+import com.zimbra.soap.type.ZmBoolean;
 
 @XmlAccessorType(XmlAccessType.NONE)
 public class BulkAction {
 
     @XmlEnum
     public static enum Operation {
-        move;
+        move, flag;
 
         public static Operation fromString(String s) throws ServiceException {
             try {
@@ -57,6 +58,13 @@ public class BulkAction {
     @XmlAttribute(name = MailConstants.A_FOLDER /* l */, required = false)
     private String folder;
 
+    /**
+     * @zm-api-field-tag read-flag
+     * @zm-api-field-description Read flag
+     */
+    @XmlAttribute(name = MailConstants.A_MARK_READ /* read */, required = false)
+    private ZmBoolean markRead;
+
     public Operation getOp() {
         return op;
     }
@@ -71,5 +79,13 @@ public class BulkAction {
 
     public void setFolder(String folder) {
         this.folder = folder;
+    }
+
+    public Boolean getMarkRead() {
+        return ZmBoolean.toBool(markRead);
+    }
+
+    public void setMarkRead(Boolean markRead) {
+        this.markRead = ZmBoolean.fromBool(markRead);
     }
 }

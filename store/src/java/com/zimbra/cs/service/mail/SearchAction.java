@@ -7,15 +7,20 @@ import java.util.Map;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.soap.Element;
 import com.zimbra.common.soap.SoapHttpTransport;
+import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.AuthTokenException;
 import com.zimbra.cs.account.Provisioning;
 import com.zimbra.cs.account.Server;
 import com.zimbra.cs.httpclient.URLUtil;
+import com.zimbra.cs.mailbox.Conversation;
+import com.zimbra.cs.mailbox.Flag;
 import com.zimbra.cs.mailbox.Folder;
 import com.zimbra.cs.mailbox.MailItem;
 import com.zimbra.cs.mailbox.Mailbox;
+import com.zimbra.cs.mailbox.Message;
 import com.zimbra.cs.mailbox.OperationContext;
+import com.zimbra.cs.redolog.RedoLogProvider;
 import com.zimbra.soap.JaxbUtil;
 import com.zimbra.soap.ZimbraSoapContext;
 import com.zimbra.soap.mail.message.SearchActionRequest;
@@ -60,6 +65,9 @@ public class SearchAction extends MailDocumentHandler {
         case move :
             performMoveAction(action, searchRequest,searchHits,mbox, octxt);
             break;
+        case flag :
+            performFlagAction(action, searchRequest,searchHits,mbox, octxt);
+            break;
         default :
             throw ServiceException.INVALID_REQUEST("Unsupported action", null);
         }
@@ -101,6 +109,86 @@ public class SearchAction extends MailDocumentHandler {
             } else {
                 throw ServiceException
                     .INVALID_REQUEST("Target folder type does not match search item type", null);
+            }
+        }
+    }
+
+    private static void performFlagAction(BulkAction action, SearchRequest searchRequest,
+        List<SearchHit> searchHits, Mailbox mbox, OperationContext octxt) throws ServiceException {
+        boolean markRead;
+        if (action.getMarkRead() != null) {
+            markRead = action.getMarkRead();
+        } else {
+            throw ServiceException.INVALID_REQUEST("read value not provided", null);
+        }
+        for (SearchHit searchHit : searchHits) {
+            String id = searchHit.getId();
+            if ("message".equalsIgnoreCase(searchRequest.getSearchTypes())) {
+                Message msg = mbox.getMessageById(octxt, Integer.parseInt(id));
+                if (markRead && msg.isUnread() && !RedoLogProvider.getInstance().isSlave()) {
+                    try {
+                        mbox.alterTag(octxt, msg.getId(), MailItem.Type.MESSAGE,
+                            Flag.FlagInfo.UNREAD, false, null);
+                    } catch (ServiceException e) {
+                        if (e.getCode().equals(ServiceException.PERM_DENIED)) {
+                            ZimbraLog.mailbox.info(
+                                "no permissions to mark message as read (ignored): %d",
+                                msg.getId());
+                        } else {
+                            ZimbraLog.mailbox.warn("problem marking message as read (ignored): %d",
+                                msg.getId(), e);
+                        }
+                    }
+                } else if (!markRead && !msg.isUnread() && !RedoLogProvider.getInstance().isSlave()) {
+                    try {
+                        mbox.alterTag(octxt, msg.getId(), MailItem.Type.MESSAGE,
+                            Flag.FlagInfo.UNREAD, true, null);
+                    } catch (ServiceException e) {
+                        if (e.getCode().equals(ServiceException.PERM_DENIED)) {
+                            ZimbraLog.mailbox.info(
+                                "no permissions to mark message as unread (ignored): %d",
+                                msg.getId());
+                        } else {
+                            ZimbraLog.mailbox.warn("problem marking message as unread (ignored): %d",
+                                msg.getId(), e);
+                        }
+                    }
+                }
+            } else if ("conversation".equalsIgnoreCase(searchRequest.getSearchTypes())) {
+                Conversation conv = mbox.getConversationById(octxt, Integer.parseInt(id));
+                if (markRead && conv.isUnread() && !RedoLogProvider.getInstance().isSlave()) {
+                    try {
+                        mbox.alterTag(octxt, conv.getId(), MailItem.Type.CONVERSATION,
+                            Flag.FlagInfo.UNREAD, false, null);
+                    } catch (ServiceException e) {
+                        if (e.getCode().equals(ServiceException.PERM_DENIED)) {
+                            ZimbraLog.mailbox.info(
+                                "no permissions to mark conversation as read (ignored): %d",
+                                conv.getId());
+                        } else {
+                            ZimbraLog.mailbox.warn(
+                                "problem marking conversation as read (ignored): %d", conv.getId(),
+                                e);
+                        }
+                    }
+                } else if (!markRead && !conv.isUnread() && !RedoLogProvider.getInstance().isSlave()) {
+                    try {
+                        mbox.alterTag(octxt, conv.getId(), MailItem.Type.CONVERSATION,
+                            Flag.FlagInfo.UNREAD, true, null);
+                    } catch (ServiceException e) {
+                        if (e.getCode().equals(ServiceException.PERM_DENIED)) {
+                            ZimbraLog.mailbox.info(
+                                "no permissions to mark conversation as unread (ignored): %d",
+                                conv.getId());
+                        } else {
+                            ZimbraLog.mailbox.warn(
+                                "problem marking conversation as unread (ignored): %d", conv.getId(),
+                                e);
+                        }
+                    }
+                }
+            } else {
+                throw ServiceException.INVALID_REQUEST("Invalid target search type", null);
             }
         }
     }
